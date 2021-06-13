@@ -40,7 +40,6 @@ public class JedisBasicsTest {
     @Test
     public void testRedisList() {
         assertThat(testPlanets.length, is(11));
-
         /* Add all test planets to the Redis set */
         Long result = jedis.rpush("planets", testPlanets);
         assertThat(result, is(11L));

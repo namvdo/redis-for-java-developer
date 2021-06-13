@@ -2,7 +2,6 @@ package com.redislabs.university.RU102J.api;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import java.time.ZonedDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;

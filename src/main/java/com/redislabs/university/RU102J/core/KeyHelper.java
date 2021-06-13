@@ -1,8 +1,12 @@
 package com.redislabs.university.RU102J.core;
 
-public class KeyHelper {
+import java.util.Objects;
 
-    final private static String defaultPrefix = "app";
+public class KeyHelper {
+    private KeyHelper() {
+
+    }
+    private static final String defaultPrefix = "app";
 
     private static String prefix = null;
 
@@ -15,10 +19,6 @@ public class KeyHelper {
     }
 
     public static String getPrefix() {
-        if (prefix != null) {
-            return prefix;
-        } else {
-            return defaultPrefix;
-        }
+        return Objects.requireNonNullElse(prefix, defaultPrefix);
     }
 }

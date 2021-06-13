@@ -1,3 +1,4 @@
+
 package com.redislabs.university.RU102J.dao;
 
 import com.redislabs.university.RU102J.api.Measurement;
@@ -5,7 +6,6 @@ import com.redislabs.university.RU102J.api.MeterReading;
 import com.redislabs.university.RU102J.api.MetricUnit;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
-import redis.clients.jedis.Pipeline;
 import redis.clients.jedis.Tuple;
 
 import java.text.DecimalFormat;
@@ -25,8 +25,6 @@ public class MetricDaoRedisZsetImpl implements MetricDao {
     static private final Integer MAX_METRIC_RETENTION_DAYS = 30;
     static private final Integer MAX_DAYS_TO_RETURN = 7;
     static private final Integer METRICS_PER_DAY = 60 * 24;
-    static private final Integer METRIC_EXPIRATION_SECONDS =
-            60 * 60 * 24 * MAX_METRIC_RETENTION_DAYS + 1;
     private final JedisPool jedisPool;
 
     public MetricDaoRedisZsetImpl(JedisPool jedisPool) {
@@ -51,6 +49,13 @@ public class MetricDaoRedisZsetImpl implements MetricDao {
         // START Challenge #2
         String metricKey = RedisSchema.getDayMetricKey(siteId, unit, dateTime);
         Integer minuteOfDay = getMinuteOfDay(dateTime);
+        // metric:[unit-name]:[year-month-day]:[site-id]
+        // e.g.: metrics:whU:2020-01-01:1
+
+        // For a sorted set value of "22.0:1", this classes provides
+        // the measurement value of 22.0 and the minuteOfDay value of 1.
+        jedis.zadd(metricKey, minuteOfDay, new MeasurementMinute(value, minuteOfDay).toString());
+        jedis.expire(metricKey, 1000);
         // END Challenge #2
     }
 
@@ -70,8 +75,8 @@ public class MetricDaoRedisZsetImpl implements MetricDao {
 
         List<Measurement> measurements = new ArrayList<>();
         ZonedDateTime currentDate = time;
-        Integer count = limit;
-        Integer iterations = 0;
+        int count = limit;
+        var iterations = 0;
 
         // This loop extracts the elements of successive
         // sorted sets until it reaches the requested limit.
@@ -98,7 +103,7 @@ public class MetricDaoRedisZsetImpl implements MetricDao {
         // A list of Measurement objects to return.
         List<Measurement> measurements = new ArrayList<>();
 
-        try (Jedis jedis = jedisPool.getResource()) {
+        try (var jedis = jedisPool.getResource()) {
             // Get the metric key for the day implied by the date.
             // metric:[unit-name]:[year-month-day]:[site-id]
             // e.g.: metrics:whU:2020-01-01:1

@@ -1,15 +1,16 @@
 package com.redislabs.university.RU102J.dao;
 
 import com.redislabs.university.RU102J.api.MeterReading;
+import com.redislabs.university.RU102J.api.Site;
 import com.redislabs.university.RU102J.api.SiteStats;
 import com.redislabs.university.RU102J.script.CompareAndUpdateScript;
-import redis.clients.jedis.Jedis;
-import redis.clients.jedis.JedisPool;
-import redis.clients.jedis.Transaction;
+import redis.clients.jedis.*;
 
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public class SiteStatsDaoRedisImpl implements SiteStatsDao {
 
@@ -47,7 +48,7 @@ public class SiteStatsDaoRedisImpl implements SiteStatsDao {
             ZonedDateTime day = reading.getDateTime();
             String key = RedisSchema.getSiteStatsKey(siteId, day);
 
-            updateBasic(jedis, key, reading);
+            updateOptimized(jedis, key, reading);
         }
     }
 
@@ -80,11 +81,25 @@ public class SiteStatsDaoRedisImpl implements SiteStatsDao {
 
     // Challenge #3
     private void updateOptimized(Jedis jedis, String key, MeterReading reading) {
-        // START Challenge #3
-        // END Challenge #3
+        try (var transaction = jedis.multi()) {
+            var reportingTime = ZonedDateTime.now(ZoneOffset.UTC).toString();
+            transaction.hset(key, SiteStats.reportingTimeField, reportingTime);
+            transaction.hincrBy(key, SiteStats.countField, 1);
+            transaction.expire(key, weekSeconds);
+            compareAndUpdateScript.updateIfLess(transaction, key, SiteStats.minWhField, reading.getWhGenerated());
+            compareAndUpdateScript.updateIfGreater(transaction, key, SiteStats.maxWhField, reading.getWhGenerated());
+            compareAndUpdateScript.updateIfGreater(transaction, key, SiteStats.maxCapacityField, getCurrentCapacity(reading));
+        }
     }
 
     private Double getCurrentCapacity(MeterReading reading) {
         return reading.getWhGenerated() - reading.getWhUsed();
+    }
+
+    @Override
+    public int hashCode() {
+       int result = Objects.hash(jedisPool);
+       result = result * 31 + Integer.hashCode(weekSeconds);
+       return result;
     }
 }

@@ -125,7 +125,6 @@ public class SiteGeoDaoRedisImplTest {
     }
 
     // Challenge #5
-    @Ignore
     @Test
     public void findByGeoWithExcessCapacity() {
         SiteGeoDao siteDao = new SiteGeoDaoRedisImpl(jedisPool);
@@ -151,13 +150,13 @@ public class SiteGeoDaoRedisImplTest {
         // In this case, no sites are returned on the excess capacity query
         sites = siteDao.findByGeo(new GeoQuery(vallejoCoord, 10.0, "KM", true));
         assertThat(sites.size(), is(0));
-
         // Simulate changing a meter reading indicating excess capacity
         reading.setWhGenerated(2.0);
         capacityDao.update(reading);
 
         // In this case, one site is returned on the excess capacity query
         sites = siteDao.findByGeo(new GeoQuery(vallejoCoord, 10.0, "KM", true));
+
         assertThat(sites.size(), is(1));
         assertThat(sites.contains(vallejo), is(true));
     }

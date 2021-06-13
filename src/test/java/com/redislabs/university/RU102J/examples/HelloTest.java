@@ -14,12 +14,11 @@ public class HelloTest {
     @Test
     public void sayHelloBasic() {
         Jedis jedis = new Jedis(HostPort.getRedisHost(), HostPort.getRedisPort());
-
         if (HostPort.getRedisPassword().length() > 0) {
             jedis.auth(HostPort.getRedisPassword());
         }
-
         jedis.set("hello", "world");
+        jedis.get("hello");
         String value = jedis.get("hello");
 
         assertThat(value, is("world"));
